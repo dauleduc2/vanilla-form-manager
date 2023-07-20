@@ -1,0 +1,40 @@
+{
+  "name": "vanilla-form-manager",
+  "private": false,
+  "author": "Phu Nguyen, Duc Dau",
+  "license": "A Package to handle your HTML Form in vanilla JS",
+  "main": "dist/bundle.js",
+  "version": "0.0.2",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "form manager",
+    "vanilla form",
+    "html",
+    "form",
+    "state",
+    "management",
+    "validation",
+    "error",
+    "render",
+    "validation",
+    "form validation",
+    "form manager",
+    "form state",
+    "form error",
+    "form handling",
+    "HTML form"
+  ],
+  "devDependencies": {
+    "source-map-loader": "latest",
+    "ts-loader": "latest",
+    "typescript": "latest",
+    "webpack": "latest",
+    "webpack-cli": "^5.1.4"
+  },
+  "scripts": {
+    "start": "webpack -w",
+    "build": "webpack"
+  }
+}
