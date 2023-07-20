@@ -2,7 +2,7 @@
   "name": "vanilla-form-manager",
   "private": false,
   "author": "Phu Nguyen, Duc Dau",
-  "license": "A Package to handle your HTML Form in vanilla JS",
+  "description": "A Package to handle your HTML Form in vanilla JS",
   "main": "dist/bundle.js",
   "version": "0.0.2",
   "files": [
@@ -36,5 +36,9 @@
   "scripts": {
     "start": "webpack -w",
     "build": "webpack"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "terser-webpack-plugin": "^5.3.9"
   }
 }

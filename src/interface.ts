@@ -1,5 +1,3 @@
-import { FormValidation } from "./class";
-
 export interface FieldState {
   value: any;
   touched: boolean;
