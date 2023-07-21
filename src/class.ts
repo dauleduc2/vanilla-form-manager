@@ -1,7 +1,7 @@
 import {
   FormState,
   Validations,
-  generateFormData,
+  generateFormState,
   FieldState,
   FormValidationConfig,
   FormErrors,
@@ -19,7 +19,7 @@ export class FormValidation<T extends object> {
 
   constructor(options: FormValidationConfig<T>) {
     this._formEl = document.getElementById(options.formId) as HTMLFormElement;
-    this._formState = generateFormData(options.initialValues);
+    this._formState = generateFormState(options.initialValues, options.watch);
     this._fields = Object.keys(options.initialValues) as (keyof T)[];
     this._validations = options.validations;
     this._validateOnChange = options.validateOnChange ?? true;
@@ -53,7 +53,7 @@ export class FormValidation<T extends object> {
   }
 
   public validateForm() {
-    for (const field in this.formState) this.validateField(field);
+    for (const field in this.formState.values) this.validateField(field);
   }
 
   private _handleOnInput() {
@@ -123,7 +123,10 @@ export class FormValidation<T extends object> {
   }
 
   private _isValidField(key: string | number | symbol): key is keyof T {
-    return key in this._formState;
+    for (const field of this._fields) {
+      if (field === key) return true;
+    }
+    return false;
   }
 
   private _getInputElementByName(name: keyof T): HTMLInputElement | undefined {
@@ -168,12 +171,12 @@ export class FormValidation<T extends object> {
   }
 
   public getFieldValue(field: keyof T) {
-    return this._formState[field].value;
+    return this._formState.values[field];
   }
 
   public setFieldValue(param: { field: keyof T; value: FieldState["value"] }) {
     const { field, value } = param;
-    this._formState[field].value = value;
+    this._formState.values[field] = value;
   }
 
   public setFieldTouched(param: {
@@ -181,25 +184,25 @@ export class FormValidation<T extends object> {
     touched: FieldState["touched"];
   }) {
     const { field, touched } = param;
-    this._formState[field].touched = touched;
+    this._formState.touched[field] = touched;
   }
 
   public getFieldTouched(field: keyof T) {
-    return this._formState[field].touched;
+    return this._formState.touched[field];
   }
 
   private _setAllFieldsTouched() {
-    for (const field in this.formState)
+    for (const field in this.formState.values)
       this.setFieldTouched({ field, touched: true });
   }
 
   public getFieldError(field: keyof T) {
-    return this._formState[field].error;
+    return this._formState.errors[field];
   }
 
   public setFieldError(param: { field: keyof T; error?: FieldState["error"] }) {
     const { field, error } = param;
-    this._formState[field].error = error;
+    this._formState.errors[field] = error;
 
     this._internalRenderError();
   }
@@ -210,7 +213,7 @@ export class FormValidation<T extends object> {
       const name = errorEl.getAttribute("name");
       if (!name) continue;
       if (this._isValidField(name)) {
-        errorEl.innerText = this.formState[name].error ?? "";
+        errorEl.innerText = this.formState.errors[name] ?? "";
       }
     }
   }
