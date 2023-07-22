@@ -1,4 +1,4 @@
-import { PathInto } from "./utils";
+import { PathInto, PathIntoValue } from "./utils";
 
 export interface FieldState {
   value: any;
@@ -20,8 +20,6 @@ export interface FormState<T extends object> {
   errors: FormStateErrors<T>;
 }
 
-type ObjectKey = string | Symbol | number;
-
 export const generateFormState = <T extends object>(
   initialValues: T,
   watch: Watch<T>
@@ -34,9 +32,9 @@ export const generateFormState = <T extends object>(
     object.errors[key] = "";
   }
 
-  const carry = (parentKey?: (keyof FormState<T> | ObjectKey)[]) => {
+  const carry = (parentKey = []) => {
     return {
-      get(obj, key: keyof FormState<T>) {
+      get(obj, key) {
         const currentTarget = obj[key];
         // handle in case the target is Object
         if (typeof currentTarget === "object" && obj[key] !== null)
@@ -48,7 +46,8 @@ export const generateFormState = <T extends object>(
       set(obj, key, value) {
         obj[key] = value;
         if (parentKey[0] === "values") {
-          const handler = watch[parentKey.slice().splice(1).join(".")];
+          const handler =
+            watch[[...parentKey, key].slice().splice(1).join(`.`)];
           handler?.(value, "", false);
         }
 
@@ -65,7 +64,11 @@ export type Validations<T extends object> = {
 };
 
 type Watch<T extends object> = {
-  [k in PathInto<T>]?: (values: any, error: string, touched: boolean) => void;
+  [K in PathInto<T>]?: (
+    values: PathIntoValue<T, K>,
+    error: string,
+    touched: boolean
+  ) => void;
 };
 
 export interface FormValidationConfig<T extends object> {
