@@ -1,40 +1,106 @@
-type Value = string | number | boolean;
+import { FormState, PathInto, Value, Watch } from "./interface";
 
-export type PathInto<T extends Record<string, any>> = keyof {
-  [K in keyof T as T extends Value[]
-    ? "_item"
-    : T extends Record<string, any>[]
-    ? "_item" | `_item.${PathInto<T[0]>}`
-    : T[K] extends Value
-    ? K
-    : T[K] extends Value[]
-    ? `${K & string}` | `${K & string}._item`
-    : T[K] extends Record<string, any>[]
-    ? `${K & string}` | `${K & string}._item.${PathInto<T[K][0]>}`
-    : T[K] extends Record<string, any>
-    ? `${K & string}` | `${K & string}.${PathInto<T[K]> & string}`
-    : never]: any;
-} &
-  string;
+export const generateFormState = <T extends object>(
+  initialValues: T,
+  watch: Watch<T>
+) => {
+  let object = { errors: {}, touched: {}, values: {} } as FormState<T>;
 
-export type PathIntoValue<
-  T extends Record<string | number, any>,
-  K extends string
-> = K extends keyof T
-  ? T[K]
-  : K extends "_item"
-  ? T[0]
-  : K extends `${infer K0}.${infer KR}`
-  ? K0 extends keyof T
-    ? PathIntoValue<T[K0], KR>
-    : K0 extends "_item"
-    ? PathIntoValue<T[0], KR>
-    : never
-  : never;
+  for (const key of Object.keys(initialValues) as (keyof T)[]) {
+    object.values[key] = null;
+    object.touched[key] = false;
+    object.errors[key] = "";
+  }
 
-export type Enumerate<
-  N extends number,
-  Acc extends string[] = []
-> = Acc["length"] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, `${Acc["length"]}`]>;
+  const carry = (parentKey = []) => {
+    return {
+      get(obj, key) {
+        const currentTarget = obj[key];
+        // handle in case the target is Object
+        if (typeof currentTarget === "object" && obj[key] !== null)
+          return new Proxy(currentTarget, carry([...parentKey, key]));
+
+        return currentTarget;
+      },
+      // key can be nested object key
+      set(obj, key, value) {
+        obj[key] = value;
+        if (parentKey[0] === "values") {
+          const handler =
+            watch[[...parentKey, key].slice().splice(1).join(`.`)];
+          handler?.(value, "", false);
+        }
+
+        return true;
+      },
+    };
+  };
+
+  return new Proxy<FormState<T>>(object, carry());
+};
+
+const isValidField = <T extends Record<string, any>>(
+  key: string | number | symbol,
+  object: T
+): key is keyof T => {
+  if (key in object) return true;
+  return false;
+};
+
+const getPaths = <T extends Record<string, any>>(
+  obj: T,
+  prevKey: string = ""
+) => {
+  const paths: string[] = [];
+  for (const key in obj) {
+    if (!isValidField(key, obj)) return [];
+    const keyToPush = prevKey ? `${prevKey}.${key}` : key;
+    if (typeof obj[key] !== "object") {
+      paths.push(keyToPush);
+    } else {
+      paths.push(...getPaths(obj[key], keyToPush));
+    }
+  }
+  if (prevKey) return paths;
+
+  const result: PathInto<T, true>[] = [];
+  for (const path of paths) {
+    if (isDeepPath(path, obj)) result.push(path);
+  }
+  return result;
+};
+
+export const getDeepPaths = <T extends Record<string, any>>(obj: T) => {
+  const paths = getPaths(obj);
+  const result: PathInto<T, true>[] = [];
+  for (const path of paths) {
+    if (isDeepPath(path, obj)) result.push(path);
+  }
+  return result;
+};
+
+const getValueByPath = <T extends Record<string, any>>(
+  path: string,
+  object: T
+): any => {
+  if (!path) throw new Error("invalid key");
+  const keys = path.split(".");
+  let result = object;
+  for (const key of keys) {
+    if (!isValidField(key, result)) throw new Error("invalid key");
+    result = result[key];
+  }
+  return result;
+};
+
+const isDeepPath = <T extends Record<string, any>>(
+  path: string,
+  object: T
+): path is PathInto<T, true> => {
+  try {
+    if (getValueByPath(path, object)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+};

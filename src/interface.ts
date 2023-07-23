@@ -1,16 +1,14 @@
-import { PathInto, PathIntoValue } from "./utils";
-
 export interface FieldState {
   value: any;
   touched: boolean;
   error?: string;
 }
 
-type FormStateValues<T> = { [key in keyof T]: any };
-type FormStateTouched<T> = { [key in keyof T]: boolean };
-type FormStateErrors<T> = { [key in keyof T]: string };
+export type FormStateValues<T> = { [key in keyof T]: any };
+export type FormStateTouched<T> = { [key in keyof T]: boolean };
+export type FormStateErrors<T> = { [key in keyof T]: string };
 
-type FormStateChildren<T> =
+export type FormStateChildren<T> =
   | FormStateValues<T>
   | FormStateTouched<T>
   | FormStateErrors<T>;
@@ -20,50 +18,11 @@ export interface FormState<T extends object> {
   errors: FormStateErrors<T>;
 }
 
-export const generateFormState = <T extends object>(
-  initialValues: T,
-  watch: Watch<T>
-) => {
-  let object = { errors: {}, touched: {}, values: {} } as FormState<T>;
-
-  for (const key of Object.keys(initialValues) as (keyof T)[]) {
-    object.values[key] = null;
-    object.touched[key] = false;
-    object.errors[key] = "";
-  }
-
-  const carry = (parentKey = []) => {
-    return {
-      get(obj, key) {
-        const currentTarget = obj[key];
-        // handle in case the target is Object
-        if (typeof currentTarget === "object" && obj[key] !== null)
-          return new Proxy(currentTarget, carry([...parentKey, key]));
-
-        return currentTarget;
-      },
-      // key can be nested object key
-      set(obj, key, value) {
-        obj[key] = value;
-        if (parentKey[0] === "values") {
-          const handler =
-            watch[[...parentKey, key].slice().splice(1).join(`.`)];
-          handler?.(value, "", false);
-        }
-
-        return true;
-      },
-    };
-  };
-
-  return new Proxy<FormState<T>>(object, carry());
-};
-
 export type Validations<T extends object> = {
-  [key in keyof T]?: (value: any) => string;
+  [K in PathInto<T>]?: (value: PathIntoValue<T, K>) => string;
 };
 
-type Watch<T extends object> = {
+export type Watch<T extends object> = {
   [K in PathInto<T>]?: (
     values: PathIntoValue<T, K>,
     error: string,
@@ -89,3 +48,58 @@ export interface FormValidationConfig<T extends object> {
 export type FormErrors<T extends object> = {
   [key in keyof T]?: string;
 };
+
+export type Value = string | number | boolean;
+
+type ArrayItem = Enumerate<100> | "_item";
+
+export type PathInto<
+  T extends Record<string, any>,
+  Deep extends boolean = false
+> = keyof {
+  [K in keyof T as T extends Value[]
+    ? ArrayItem
+    : T extends Record<string, any>[]
+    ?
+        | (Deep extends true ? never : ArrayItem)
+        | `${ArrayItem}.${PathInto<T[0], Deep>}`
+    : T[K] extends Value
+    ? K
+    : T[K] extends Value[]
+    ?
+        | (Deep extends true ? never : `${K & string}`)
+        | `${K & string}.${ArrayItem}`
+    : T[K] extends Record<string, any>[]
+    ?
+        | (Deep extends true ? never : `${K & string}`)
+        | (Deep extends true ? never : `${K & string}.${ArrayItem}`)
+        | `${K & string}.${ArrayItem}.${PathInto<T[K][0], Deep>}`
+    : T[K] extends Record<string, any>
+    ?
+        | (Deep extends true ? never : `${K & string}`)
+        | `${K & string}.${PathInto<T[K], Deep> & string}`
+    : never]: any;
+} &
+  string;
+
+export type PathIntoValue<
+  T extends Record<string | number, any>,
+  K extends string
+> = K extends keyof T
+  ? T[K]
+  : K extends ArrayItem
+  ? T[0]
+  : K extends `${infer K0}.${infer KR}`
+  ? K0 extends keyof T
+    ? PathIntoValue<T[K0], KR>
+    : K0 extends ArrayItem
+    ? PathIntoValue<T[0], KR>
+    : never
+  : never;
+
+export type Enumerate<
+  N extends number,
+  Acc extends string[] = []
+> = Acc["length"] extends N
+  ? Acc[number]
+  : Enumerate<N, [...Acc, `${Acc["length"]}`]>;

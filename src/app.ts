@@ -10,7 +10,6 @@ const myForm = new FormValidation({
     fname: "",
     lname: "",
     a: { b: { c: "1" } },
-    c: [{ cc: [1, 3] }, { cc: [1, 3] }],
   },
   validations: {
     fname: (value) => (!!value ? "" : "required"),
@@ -23,9 +22,5 @@ const myForm = new FormValidation({
     fname: (value) => {
       console.log("fname changes to ", value);
     },
-    a: (value) => {
-      console.log(value);
-    },
-    "c._item.cc._item": (value) => value,
   },
 });

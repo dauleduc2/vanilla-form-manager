@@ -1,26 +1,28 @@
 import {
   FormState,
   Validations,
-  generateFormState,
   FieldState,
   FormValidationConfig,
   FormErrors,
+  PathInto,
+  FormStateValues,
 } from "./interface";
+import { generateFormState, getDeepPaths } from "./utils";
 
-export class FormValidation<T extends object> {
+export class FormValidation<T extends Record<string, any>> {
   private _formState: FormState<T>;
   private _formEl: HTMLFormElement;
-  private _fields: (keyof T)[];
   private _validations?: Validations<T>;
   private _validateOnChange: boolean;
   private _validateOnBlur: boolean;
+  private _getFieldPaths: () => PathInto<FormStateValues<T>, true>[];
   private _onSubmit: (values: T) => void;
   private _renderFunction: () => void;
 
   constructor(options: FormValidationConfig<T>) {
     this._formEl = document.getElementById(options.formId) as HTMLFormElement;
     this._formState = generateFormState(options.initialValues, options.watch);
-    this._fields = Object.keys(options.initialValues) as (keyof T)[];
+    this._getFieldPaths = () => getDeepPaths(this.formState.values);
     this._validations = options.validations;
     this._validateOnChange = options.validateOnChange ?? true;
     this._validateOnBlur = options.validateOnBlur ?? true;
@@ -38,29 +40,11 @@ export class FormValidation<T extends object> {
     this._handleOnSubmit();
   }
 
-  public validateField(field: keyof T) {
-    // no validate if field is not touched or no validation provided
-    if (!this.getFieldTouched(field) || !this._validations) return;
-
-    const validateFn = this._validations[field];
-    // no validate if no validation provided for the specific field
-    if (!validateFn) return;
-
-    const value = this.getFieldValue(field);
-    const error = validateFn(value);
-
-    this.setFieldError({ field, error });
-  }
-
-  public validateForm() {
-    for (const field in this.formState.values) this.validateField(field);
-  }
-
   private _handleOnInput() {
     this._formEl.addEventListener("input", (e) => {
       const field = (e.target as HTMLInputElement).name;
       const value = (e.target as HTMLInputElement).value;
-      if (this._isValidField(field)) {
+      if (this._isValidFieldPath(field)) {
         this.setFieldTouched({ field, touched: true });
         this.setFieldValue({ field, value });
 
@@ -106,7 +90,7 @@ export class FormValidation<T extends object> {
     inputs.forEach((input) => {
       input.addEventListener("blur", function () {
         const field = this.name;
-        if (formInstance._isValidField(field)) {
+        if (formInstance._isValidFieldPath(field)) {
           // set field touched on blur
           formInstance.setFieldTouched({
             field,
@@ -122,8 +106,10 @@ export class FormValidation<T extends object> {
     });
   }
 
-  private _isValidField(key: string | number | symbol): key is keyof T {
-    for (const field of this._fields) {
+  private _isValidFieldPath(
+    key: string | number | symbol
+  ): key is PathInto<FormStateValues<T>, true> {
+    for (const field of this._getFieldPaths()) {
       if (field === key) return true;
     }
     return false;
@@ -152,6 +138,24 @@ export class FormValidation<T extends object> {
 
   public get formElement() {
     return this._formEl;
+  }
+
+  public validateField(field: PathInto<T>) {
+    // no validate if field is not touched or no validation provided
+    if (!this.getFieldTouched(field) || !this._validations) return;
+
+    const validateFn = this._validations[field];
+    // no validate if no validation provided for the specific field
+    if (!validateFn) return;
+
+    const value = this.getFieldValue(field);
+    const error = validateFn(value);
+
+    this.setFieldError({ field, error });
+  }
+
+  public validateForm() {
+    for (const field in this.formState.values) this.validateField(field);
   }
 
   public getFormValues() {
@@ -212,7 +216,7 @@ export class FormValidation<T extends object> {
     for (const errorEl of errorElements) {
       const name = errorEl.getAttribute("name");
       if (!name) continue;
-      if (this._isValidField(name)) {
+      if (this._isValidFieldPath(name)) {
         errorEl.innerText = this.formState.errors[name] ?? "";
       }
     }
