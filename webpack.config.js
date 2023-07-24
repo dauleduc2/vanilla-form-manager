@@ -21,7 +21,7 @@ module.exports = {
     filename: "./bundle.js",
     path: path.resolve(__dirname, "dist"),
     globalObject: "this",
-    library: "VanillaFormManager",
+    library: "FormManager",
     libraryExport: "default",
     libraryTarget: "umd",
   },

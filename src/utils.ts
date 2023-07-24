@@ -1,14 +1,8 @@
-import {
-  AllPathInto,
-  DeepPathInto,
-  FormState,
-  PathInto,
-  Watch,
-} from "./interface";
+import { AllPathInto, DeepPathInto, FormState, Watch } from "./interface";
 
 export const generateFormState = <T extends Record<string, any>>(
   initialValues: T,
-  watch: Watch<T>
+  watch?: Watch<T>
 ) => {
   let object = { errors: {}, touched: {}, values: {} } as FormState<T>;
 
@@ -30,7 +24,7 @@ export const generateFormState = <T extends Record<string, any>>(
         obj[key] = value;
         if (parentKey[0] === "values") {
           const handler =
-            watch[[...parentKey, key].slice().splice(1).join(`.`)];
+            watch?.[[...parentKey, key].slice().splice(1).join(`.`)];
           handler?.(value, "", false);
         }
 
@@ -173,7 +167,7 @@ function deepCopy<T>(instance: T): T {
 
   // handle Array types
   if (instance instanceof Array) {
-    var cloneArr = [] as any[];
+    const cloneArr = [] as any[];
     (instance as any[]).forEach((value) => {
       cloneArr.push(value);
     });
@@ -182,10 +176,10 @@ function deepCopy<T>(instance: T): T {
   }
   // handle objects
   if (instance instanceof Object) {
-    var copyInstance = { ...(instance as { [key: string]: any }) } as {
+    const copyInstance = { ...(instance as { [key: string]: any }) } as {
       [key: string]: any;
     };
-    for (var attr in instance) {
+    for (const attr in instance) {
       if ((instance as Object).hasOwnProperty(attr))
         copyInstance[attr] = deepCopy<any>(instance[attr]);
     }

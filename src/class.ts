@@ -22,6 +22,8 @@ export class FormValidation<T extends Record<string, any>> {
   private _validations?: Validations<T>;
   private _validateOnChange: boolean;
   private _validateOnBlur: boolean;
+  private _allPaths: AllPathInto<T>[];
+  private _deepPaths: DeepPathInto<T>[];
   private _getDeepPaths: () => {
     paths: DeepPathInto<T>[];
     flatObject: Record<DeepPathInto<T>, any>;
@@ -33,7 +35,7 @@ export class FormValidation<T extends Record<string, any>> {
   private _onSubmit: (values: T) => void;
   private _onChange?: (instance: FormValidation<T>) => void;
   private _onBlur?: (instance: FormValidation<T>) => void;
-  private _renderFunction: () => void;
+  private _renderFunction?: () => void;
 
   constructor(options: FormValidationConfig<T>) {
     this._formEl = () =>
@@ -44,16 +46,20 @@ export class FormValidation<T extends Record<string, any>> {
     this._validateOnBlur = options.validateOnBlur ?? true;
     this._getDeepPaths = () => getDeepPaths(this.formState.values);
     this._getAllPaths = () => getAllPaths(this.formState.values);
+    this._allPaths = this._getAllPaths().paths;
+    this._deepPaths = this._getDeepPaths().paths;
     this._onSubmit = options.onSubmit;
     this._onChange = options.onChange;
     this._onBlur = options.onBlur;
-    this._renderFunction = () => {
-      options.renderError?.(
-        this.formState,
-        this.formElement,
-        this._getInputElements()
-      );
-    };
+    this._renderFunction = options.renderError
+      ? () => {
+          options.renderError?.(
+            this.formState,
+            this.formElement,
+            this._getInputElements()
+          );
+        }
+      : undefined;
 
     this._handleOnInput();
     this._handleOnBlur();
@@ -71,8 +77,6 @@ export class FormValidation<T extends Record<string, any>> {
 
         // validate on input change
         this._validateOnChange && this.validateField(field);
-
-        this._renderFunction();
       }
       this._onChange?.(this);
     });
@@ -98,8 +102,6 @@ export class FormValidation<T extends Record<string, any>> {
     this.formElement.addEventListener("submit", (e) => {
       if (this._shouldFormPreventDefault()) e.preventDefault();
 
-      this._renderFunction?.();
-
       if (this.isFormValid) this._onSubmit(this.formValues);
     });
   }
@@ -120,7 +122,6 @@ export class FormValidation<T extends Record<string, any>> {
           // validate field on blur
           formInstance._validateOnBlur && formInstance.validateField(field);
 
-          formInstance._renderFunction();
           formInstance._onBlur?.(formInstance);
           formInstance._onChange?.(formInstance);
         }
@@ -131,7 +132,7 @@ export class FormValidation<T extends Record<string, any>> {
   private _isDeepPath(
     key: string | number | symbol
   ): key is DeepPathInto<FormStateValues<T>> {
-    for (const field of this._getDeepPaths().paths) {
+    for (const field of this._deepPaths) {
       if (field === key) return true;
     }
     return false;
@@ -140,7 +141,7 @@ export class FormValidation<T extends Record<string, any>> {
   private _isAllPath(
     key: string | number | symbol
   ): key is AllPathInto<FormStateValues<T>> {
-    for (const field of this._getAllPaths().paths) {
+    for (const field of this._allPaths) {
       if (field === key) return true;
     }
     return false;
@@ -207,7 +208,7 @@ export class FormValidation<T extends Record<string, any>> {
   }
 
   public validateForm() {
-    for (const field of this._getAllPaths().paths) this.validateField(field);
+    for (const field of this._allPaths) this.validateField(field);
   }
 
   public get formValues() {
@@ -236,6 +237,11 @@ export class FormValidation<T extends Record<string, any>> {
     }
   };
 
+  private _updatePaths = () => {
+    this._allPaths = this._getAllPaths().paths;
+    this._deepPaths = this._getDeepPaths().paths;
+  };
+
   public getFieldValue(field: AllPathInto<T>) {
     return getValueByPath(field, this.formState.values);
   }
@@ -246,6 +252,7 @@ export class FormValidation<T extends Record<string, any>> {
   }) {
     const { field, value } = param;
     setValueByPath(field, this._formState.values, value);
+    if (!this._allPaths.includes(field)) this._updatePaths();
   }
 
   public setFieldTouched(param: {
@@ -262,7 +269,7 @@ export class FormValidation<T extends Record<string, any>> {
   }
 
   private _setAllFieldsTouched() {
-    for (const field of this._getDeepPaths().paths)
+    for (const field of this._deepPaths)
       this.setFieldTouched({ field, touched: true });
   }
 
@@ -281,6 +288,7 @@ export class FormValidation<T extends Record<string, any>> {
   }
 
   private _internalRenderError() {
+    if (this._renderFunction) return this._renderFunction();
     const errorElements = this._getErrorElements();
     for (const errorEl of errorElements) {
       const name = errorEl.getAttribute("name");

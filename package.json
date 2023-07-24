@@ -4,7 +4,7 @@
   "author": "Phu Nguyen, Duc Dau",
   "description": "A Package to handle your HTML Form in vanilla JS",
   "main": "dist/bundle.js",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "files": [
     "dist"
   ],
