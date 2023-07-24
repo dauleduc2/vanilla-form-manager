@@ -6,19 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <script src="./dist/bundle.js" defer></script>
+    <style>
+      .error {
+        color: red;
+      }
+    </style>
   </head>
   <body>
-    <pre id="form-state"></pre>
-    <form id="myForm">
-      <label>First Name</label>
-      <input type="text" name="fname" />
-      <div class="error" role="error-message" name="fname"></div>
-      <br />
-      <label>Last Name</label>
-      <input type="text" name="lname" /><br />
-      <div class="error" role="error-message" name="lname"></div>
+    <div style="display: flex; justify-content: space-evenly">
+      <pre id="form-state"></pre>
+      <form id="myForm">
+        <label>First Name</label><br />
+        <input type="text" name="fname" />
+        <div class="error" role="error-message" name="fname"></div>
+        <br />
+        <label>Age</label><br />
+        <input type="text" name="age" /><br />
+        <div class="error" role="error-message" name="age"></div>
 
-      <input type="submit" value="Submit" />
-    </form>
+        <label>Address</label><br />
+        <input type="text" name="address.city" placeholder="city" /><br />
+        <div class="error" role="error-message" name="address.city"></div>
+        <input type="text" name="address.country" placeholder="country" /><br />
+        <div class="error" role="error-message" name="address.country"></div>
+
+        <label>Scores</label><br />
+        <input type="text" name="scores.0.math" placeholder="city" /><br />
+        <div class="error" role="error-message" name="scores.0.math"></div>
+        <input
+          type="text"
+          name="scores.1.physics"
+          placeholder="country"
+        /><br />
+        <div class="error" role="error-message" name="scores.1.physics"></div>
+        <div id="hobbies">
+          <label>Hobbies</label><br />
+          <div class="error" role="error-message" name="hobbies"></div>
+
+          <input type="text" name="hobbies.0" placeholder="hobby 0" /><br />
+          <div class="error" role="error-message" name="hobbies.0"></div>
+        </div>
+
+        <input type="submit" value="Submit" />
+        <button id="add-hobby" type="button">Add Hobby</button>
+      </form>
+    </div>
   </body>
 </html>

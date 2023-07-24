@@ -1,16 +1,19 @@
-import { FormState, PathInto, Value, Watch } from "./interface";
+import {
+  AllPathInto,
+  DeepPathInto,
+  FormState,
+  PathInto,
+  Watch,
+} from "./interface";
 
-export const generateFormState = <T extends object>(
+export const generateFormState = <T extends Record<string, any>>(
   initialValues: T,
   watch: Watch<T>
 ) => {
   let object = { errors: {}, touched: {}, values: {} } as FormState<T>;
 
-  for (const key of Object.keys(initialValues) as (keyof T)[]) {
-    object.values[key] = null;
-    object.touched[key] = false;
-    object.errors[key] = "";
-  }
+  object.values = deepCopy(initialValues);
+  object.touched = setAllKeysTo(deepCopy(initialValues), false);
 
   const carry = (parentKey = []) => {
     return {
@@ -39,6 +42,17 @@ export const generateFormState = <T extends object>(
   return new Proxy<FormState<T>>(object, carry());
 };
 
+const setAllKeysTo = <T extends Record<string, any>>(object: T, value: any) => {
+  for (const key in object) {
+    if (typeof object[key] !== "object") {
+      object[key] = value;
+    } else {
+      object[key] = setAllKeysTo(object[key], value);
+    }
+  }
+  return object;
+};
+
 const isValidField = <T extends Record<string, any>>(
   key: string | number | symbol,
   object: T
@@ -49,58 +63,142 @@ const isValidField = <T extends Record<string, any>>(
 
 const getPaths = <T extends Record<string, any>>(
   obj: T,
-  prevKey: string = ""
+  prevKey: string = "",
+  prevObj: Record<string, any> = {}
 ) => {
   const paths: string[] = [];
+  const flatObject: Record<string, any> = prevObj as Record<string, any>;
   for (const key in obj) {
-    if (!isValidField(key, obj)) return [];
+    if (!isValidField(key, obj)) return { paths, flatObject };
     const keyToPush = prevKey ? `${prevKey}.${key}` : key;
     if (typeof obj[key] !== "object") {
       paths.push(keyToPush);
+      flatObject[keyToPush] = obj[key];
     } else {
-      paths.push(...getPaths(obj[key], keyToPush));
+      paths.push(keyToPush, ...getPaths(obj[key], keyToPush, flatObject).paths);
     }
   }
-  if (prevKey) return paths;
-
-  const result: PathInto<T, true>[] = [];
-  for (const path of paths) {
-    if (isDeepPath(path, obj)) result.push(path);
-  }
-  return result;
+  return { paths, flatObject };
 };
 
 export const getDeepPaths = <T extends Record<string, any>>(obj: T) => {
-  const paths = getPaths(obj);
-  const result: PathInto<T, true>[] = [];
+  const { paths, flatObject } = getPaths(obj);
+  const result: DeepPathInto<T>[] = [];
+  const object: Record<DeepPathInto<T>, any> = {} as Record<
+    DeepPathInto<T>,
+    any
+  >;
   for (const path of paths) {
-    if (isDeepPath(path, obj)) result.push(path);
+    if (isDeepPath(path, obj)) {
+      result.push(path);
+      object[path] = flatObject[path];
+    }
   }
-  return result;
+  return { paths: result, flatObject: object };
 };
 
-const getValueByPath = <T extends Record<string, any>>(
+export const getAllPaths = <T extends Record<string, any>>(obj: T) => {
+  const { paths, flatObject } = getPaths(obj);
+  const result: AllPathInto<T>[] = [];
+  const object: Record<AllPathInto<T>, any> = {} as Record<AllPathInto<T>, any>;
+  for (const path of paths) {
+    if (isAllPath(path, obj)) {
+      result.push(path);
+      object[path] = flatObject[path];
+    }
+  }
+  return { paths: result, flatObject: object };
+};
+
+export const getValueByPath = <T extends Record<string, any>>(
   path: string,
   object: T
 ): any => {
-  if (!path) throw new Error("invalid key");
+  if (!path) return object;
   const keys = path.split(".");
   let result = object;
   for (const key of keys) {
-    if (!isValidField(key, result)) throw new Error("invalid key");
+    if (!isValidField(key, result)) throw new Error("invalid key!");
     result = result[key];
   }
   return result;
 };
 
-const isDeepPath = <T extends Record<string, any>>(
+export const setValueByPath = <T extends Record<string, any>>(
+  path: string,
+  object: T,
+  value: any
+) => {
+  if (!path) throw new Error("invalid key");
+  const keys = path.split(".");
+  const last = keys.splice(-1);
+  const itemToChange = getValueByPath(keys.join("."), object);
+  itemToChange[last[0]] = value;
+};
+
+export const isDeepPath = <T extends Record<string, any>>(
   path: string,
   object: T
-): path is PathInto<T, true> => {
+): path is DeepPathInto<T> => {
   try {
-    if (getValueByPath(path, object)) return true;
+    const value = getValueByPath(path, object);
+    if (typeof value !== "object") return true;
     return false;
   } catch {
     return false;
   }
+};
+
+export const isAllPath = <T extends Record<string, any>>(
+  path: string,
+  object: T
+): path is AllPathInto<T> => {
+  try {
+    getValueByPath(path, object);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+function deepCopy<T>(instance: T): T {
+  if (instance == null) {
+    return instance;
+  }
+
+  // handle Dates
+  if (instance instanceof Date) {
+    return new Date(instance.getTime()) as any;
+  }
+
+  // handle Array types
+  if (instance instanceof Array) {
+    var cloneArr = [] as any[];
+    (instance as any[]).forEach((value) => {
+      cloneArr.push(value);
+    });
+    // for nested objects
+    return cloneArr.map((value: any) => deepCopy<any>(value)) as any;
+  }
+  // handle objects
+  if (instance instanceof Object) {
+    var copyInstance = { ...(instance as { [key: string]: any }) } as {
+      [key: string]: any;
+    };
+    for (var attr in instance) {
+      if ((instance as Object).hasOwnProperty(attr))
+        copyInstance[attr] = deepCopy<any>(instance[attr]);
+    }
+    return copyInstance as T;
+  }
+  // handling primitive data types
+  return instance;
+}
+
+export const isAnyFieldTrue = (value: any) => {
+  if (typeof value === "boolean") return value;
+  for (const key in value) {
+    if (isAnyFieldTrue(value[key])) return true;
+  }
+  return false;
 };

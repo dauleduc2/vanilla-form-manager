@@ -1,12 +1,16 @@
+import { FormValidation } from "./class";
+
 export interface FieldState {
   value: any;
   touched: boolean;
   error?: string;
 }
 
-export type FormStateValues<T> = { [key in keyof T]: any };
+export type FormStateValues<T> = T;
 export type FormStateTouched<T> = { [key in keyof T]: boolean };
-export type FormStateErrors<T> = { [key in keyof T]: string };
+export type FormStateErrors<T extends Record<string, any>> = {
+  [K in AllPathInto<T>]: string;
+};
 
 export type FormStateChildren<T> =
   | FormStateValues<T>
@@ -19,7 +23,7 @@ export interface FormState<T extends object> {
 }
 
 export type Validations<T extends object> = {
-  [K in PathInto<T>]?: (value: PathIntoValue<T, K>) => string;
+  [K in AllPathInto<T>]?: (value: PathIntoValue<T, K>) => string;
 };
 
 export type Watch<T extends object> = {
@@ -37,6 +41,8 @@ export interface FormValidationConfig<T extends object> {
   validateOnChange?: boolean;
   validateOnBlur?: boolean;
   onSubmit: (values: T) => void;
+  onChange?: (instance: FormValidation<T>) => void;
+  onBlur?: (instance: FormValidation<T>) => void;
   renderError?: (
     formState: FormState<T>,
     formEl: HTMLFormElement,
@@ -51,7 +57,7 @@ export type FormErrors<T extends object> = {
 
 export type Value = string | number | boolean;
 
-type ArrayItem = Enumerate<100> | "_item";
+type ArrayItem = "_item";
 
 export type PathInto<
   T extends Record<string, any>,
@@ -81,6 +87,12 @@ export type PathInto<
     : never]: any;
 } &
   string;
+
+export type DeepPathInto<T extends Record<string, any>> = PathInto<T, true>;
+
+export type AllPathInto<T extends Record<string, any>> =
+  | DeepPathInto<T>
+  | PathInto<T>;
 
 export type PathIntoValue<
   T extends Record<string | number, any>,
