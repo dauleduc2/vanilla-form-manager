@@ -155,7 +155,7 @@ export const isAllPath = <T extends Record<string, any>>(
   }
 };
 
-function deepCopy<T>(instance: T): T {
+export function deepCopy<T>(instance: T): T {
   if (instance == null) {
     return instance;
   }

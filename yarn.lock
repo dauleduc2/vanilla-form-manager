@@ -845,6 +845,13 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
+vanilla-form-manager@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/vanilla-form-manager/-/vanilla-form-manager-0.0.7.tgz#09b2f9487a74459e05caa7a1486ca8ef00cf2abb"
+  integrity sha512-QjUEZS0nLhL1N6bb5usXpeqk7AvO/n6+ifaCzZzLsg9AR+Tm6Cgvbg9mgaQ0r8c4VdIeWU/IT7CAPbYHNyDOKw==
+  dependencies:
+    terser-webpack-plugin "^5.3.9"
+
 watchpack@^2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/watchpack/-/watchpack-2.4.0.tgz#fa33032374962c78113f93c7f2fb4c54c9862a5d"

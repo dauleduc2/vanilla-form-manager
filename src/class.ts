@@ -6,8 +6,12 @@ import {
   FormStateValues,
   DeepPathInto,
   AllPathInto,
+  FormStateTouched,
+  FormStateErrors,
+  Watch,
 } from "./interface";
 import {
+  deepCopy,
   generateFormState,
   getAllPaths,
   getDeepPaths,
@@ -17,7 +21,9 @@ import {
 } from "./utils";
 
 export class FormValidation<T extends Record<string, any>> {
+  public initialValues: T;
   private _formState: FormState<T>;
+  private _watch: Watch<T>;
   private _formEl: () => HTMLFormElement;
   private _validations?: Validations<T>;
   private _validateOnChange: boolean;
@@ -38,9 +44,11 @@ export class FormValidation<T extends Record<string, any>> {
   private _renderFunction?: () => void;
 
   constructor(options: FormValidationConfig<T>) {
+    this.initialValues = deepCopy(options.initialValues);
     this._formEl = () =>
       document.getElementById(options.formId) as HTMLFormElement;
     this._formState = generateFormState(options.initialValues, options.watch);
+    this._watch = options.watch;
     this._validations = options.validations;
     this._validateOnChange = options.validateOnChange ?? true;
     this._validateOnBlur = options.validateOnBlur ?? true;
@@ -225,6 +233,15 @@ export class FormValidation<T extends Record<string, any>> {
     for (const path of paths) {
       this.setFieldValue({ field: path, value: flatObject[path] });
     }
+  };
+
+  public resetForm = () => {
+    this._formState = generateFormState(
+      deepCopy(this.initialValues),
+      this._watch
+    );
+    this.renderFormValue(this.initialValues);
+    this._internalRenderError();
   };
 
   public renderFormValue = (value: T) => {
