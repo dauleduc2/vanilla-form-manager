@@ -4,12 +4,6 @@ import { FormValidation } from "./class";
 
 export default { FormValidation };
 
-const formStateEl = document.querySelector("#form-state");
-
-const showFormState = (state: any) => {
-  formStateEl.innerHTML = JSON.stringify(state, null, 2);
-};
-
 const initialValues = {
   fname: "Phu",
   age: "",
@@ -33,16 +27,10 @@ const myForm = new FormValidation({
   onSubmit: (values) => {
     console.log("form submitted", values);
   },
-  onChange: (instance) => {
-    showFormState(instance.formState);
-  },
-  onBlur: (instance) => {
-    showFormState(instance.formState);
-    console.log(instance.formState.touched);
-  },
+  onChange: (instance) => {},
+  onBlur: (instance) => {},
+  debug: true,
 });
-
-showFormState(myForm.formState);
 
 document.getElementById("add-hobby").addEventListener("click", () => {
   const hobbiesWrapper = document.getElementById("hobbies");
@@ -64,7 +52,6 @@ document.getElementById("add-hobby").addEventListener("click", () => {
   myForm.setFieldValue({ field: name, value: "" });
   myForm.setFieldTouched({ field: name, touched: false });
   myForm.validateField(name);
-  showFormState(myForm.formState);
 });
 
 document.getElementById("reset").addEventListener("click", () => {

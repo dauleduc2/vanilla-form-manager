@@ -16,12 +16,14 @@ import {
   getAllPaths,
   getDeepPaths,
   getValueByPath,
+  handleAdjustWidth,
   isAnyFieldTrue,
   setValueByPath,
 } from "./utils";
 
 export class FormValidation<T extends Record<string, any>> {
   public initialValues: T;
+  private _debug: boolean;
   private _formState: FormState<T>;
   private _watch: Watch<T>;
   private _formEl: () => HTMLFormElement;
@@ -47,7 +49,12 @@ export class FormValidation<T extends Record<string, any>> {
     this.initialValues = deepCopy(options.initialValues);
     this._formEl = () =>
       document.getElementById(options.formId) as HTMLFormElement;
-    this._formState = generateFormState(options.initialValues, options.watch);
+    this._debug = options.debug ?? false;
+    this._formState = generateFormState(
+      options.initialValues,
+      this._renderDebug,
+      options.watch
+    );
     this._watch = options.watch;
     this._validations = options.validations;
     this._validateOnChange = options.validateOnChange ?? true;
@@ -73,6 +80,7 @@ export class FormValidation<T extends Record<string, any>> {
     this._handleOnBlur();
     this._handleOnSubmit();
     this.renderFormValue(options.initialValues);
+    this._renderDebug();
   }
 
   private _handleOnInput() {
@@ -114,28 +122,112 @@ export class FormValidation<T extends Record<string, any>> {
     });
   }
 
+  private _handleBlurCb = (e: FocusEvent) => {
+    const field = (e.target as HTMLInputElement).name;
+    if (this._isAllPath(field)) {
+      // set field touched on blur
+      this.setFieldTouched({
+        field,
+        touched: true,
+      });
+
+      // validate field on blur
+      this._validateOnBlur && this.validateField(field);
+
+      this._onBlur?.(this);
+      this._onChange?.(this);
+    }
+  };
+
   private _handleOnBlur() {
     const inputs = this._getInputElements();
-    const formInstance = this;
-    inputs.forEach((input) => {
-      input.addEventListener("blur", function () {
-        const field = this.name;
-        if (formInstance._isAllPath(field)) {
-          // set field touched on blur
-          formInstance.setFieldTouched({
-            field,
-            touched: true,
-          });
-
-          // validate field on blur
-          formInstance._validateOnBlur && formInstance.validateField(field);
-
-          formInstance._onBlur?.(formInstance);
-          formInstance._onChange?.(formInstance);
-        }
-      });
-    });
+    inputs.forEach((input) =>
+      input.removeEventListener("blur", this._handleBlurCb)
+    );
+    inputs.forEach((input) =>
+      input.addEventListener("blur", this._handleBlurCb)
+    );
   }
+
+  private _renderDebug = () => {
+    if (!this._debug) return;
+    const defaultWidth = 300;
+    const debugWrapperId = "vanilla-form-manager-debugger";
+    const debugContentId = "vanilla-form-manager-debugger-content";
+    const debugAdjustId = "vanilla-form-manager-debugger-adjust";
+    const debugEl = document.getElementById(debugWrapperId);
+    const content = `<pre>${JSON.stringify(this.formState, null, 2)}</pre>`;
+    if (debugEl) {
+      debugEl.querySelector(`#${debugContentId}`).innerHTML = content;
+    } else {
+      const debugWrapperEl = document.createElement("div");
+      const debugContentEl = document.createElement("div");
+      const debugAdjustEl = document.createElement("div");
+      const debugCloseEl = document.createElement("button");
+      debugWrapperEl.id = debugWrapperId;
+      debugContentEl.id = debugContentId;
+      debugAdjustEl.id = debugAdjustId;
+      debugWrapperEl.appendChild(debugContentEl);
+      debugWrapperEl.appendChild(debugAdjustEl);
+      debugWrapperEl.appendChild(debugCloseEl);
+      handleAdjustWidth(
+        debugAdjustEl,
+        document.body,
+        debugContentEl,
+        defaultWidth
+      );
+      debugWrapperEl.setAttribute(
+        "style",
+        `
+        position: fixed;
+        height: 100vh;
+        right: 0;
+        top: 0;
+        box-sizing: border-box
+        `
+      );
+      debugAdjustEl.setAttribute(
+        "style",
+        `
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 5px;
+        height: 100%;
+        background: #cf0e56;
+        cursor: col-resize
+        `
+      );
+      debugContentEl.setAttribute(
+        "style",
+        `
+        color: white;
+        width: 300px;
+        padding-left: 20px;
+        height: 100%;
+        background-color: #ec5990;
+        box-sizing: border-box;
+        display: flex;
+      `
+      );
+      debugCloseEl.setAttribute(
+        "style",
+        `
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      `
+      );
+      debugContentEl.innerHTML = content;
+      debugCloseEl.innerHTML = "Form Manager Debug";
+      document.body.appendChild(debugWrapperEl);
+      debugCloseEl.addEventListener("click", () => {
+        const display = debugContentEl.style.display;
+        if (display === "flex") return (debugContentEl.style.display = "none");
+        debugContentEl.style.display = "flex";
+      });
+    }
+  };
 
   private _isDeepPath(
     key: string | number | symbol
@@ -238,6 +330,7 @@ export class FormValidation<T extends Record<string, any>> {
   public resetForm = () => {
     this._formState = generateFormState(
       deepCopy(this.initialValues),
+      this._renderDebug,
       this._watch
     );
     this.renderFormValue(this.initialValues);
@@ -257,6 +350,7 @@ export class FormValidation<T extends Record<string, any>> {
   private _updatePaths = () => {
     this._allPaths = this._getAllPaths().paths;
     this._deepPaths = this._getDeepPaths().paths;
+    this._handleOnBlur();
   };
 
   public getFieldValue(field: AllPathInto<T>) {

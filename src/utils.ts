@@ -1,7 +1,9 @@
+import { FormValidation } from "./class";
 import { AllPathInto, DeepPathInto, FormState, Watch } from "./interface";
 
 export const generateFormState = <T extends Record<string, any>>(
   initialValues: T,
+  renderDebug: () => void,
   watch?: Watch<T>
 ) => {
   let object = { errors: {}, touched: {}, values: {} } as FormState<T>;
@@ -27,7 +29,7 @@ export const generateFormState = <T extends Record<string, any>>(
             watch?.[[...parentKey, key].slice().splice(1).join(`.`)];
           handler?.(value, "", false);
         }
-
+        renderDebug();
         return true;
       },
     };
@@ -195,4 +197,30 @@ export const isAnyFieldTrue = (value: any) => {
     if (isAnyFieldTrue(value[key])) return true;
   }
   return false;
+};
+
+export const handleAdjustWidth = (
+  adjustEle: HTMLElement,
+  leftEle: HTMLElement,
+  rightEle: HTMLElement,
+  width: number
+) => {
+  let mousedown = false;
+  let lastMouseDownX;
+  adjustEle.addEventListener("mousedown", (e) => {
+    mousedown = true;
+    if (!lastMouseDownX) lastMouseDownX = e.clientX;
+  });
+
+  document.addEventListener("mouseup", (e) => {
+    mousedown = false;
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!mousedown) return;
+
+    const bodyWidth = window.innerWidth;
+    const rightElWidth = bodyWidth - e.clientX;
+    rightEle.style.width = rightElWidth + "px";
+  });
 };

@@ -49,6 +49,7 @@ export interface FormValidationConfig<T extends object> {
     formInputs: HTMLInputElement[]
   ) => void;
   watch?: Watch<T>;
+  debug?: boolean;
 }
 
 export type FormErrors<T extends object> = {
