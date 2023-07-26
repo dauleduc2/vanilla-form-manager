@@ -38,12 +38,22 @@
           placeholder="country"
         /><br />
         <div class="error" role="error-message" name="scores.1.physics"></div>
-        <div id="hobbies">
+        <div id="hobbies-wrapper">
           <label>Hobbies</label><br />
           <div class="error" role="error-message" name="hobbies"></div>
 
-          <input type="text" name="hobbies.0" placeholder="hobby 0" /><br />
-          <div class="error" role="error-message" name="hobbies.0"></div>
+          <div role="array-item" style="display: flex; gap: 10px">
+            <input type="text" name="hobbies.0" placeholder="hobby 0" /><br />
+            <div class="error" role="error-message" name="hobbies.0"></div>
+            <button
+              type="button"
+              role="remove-item-button"
+              data-index="0"
+              class="remove-hobby"
+            >
+              Remove
+            </button>
+          </div>
         </div>
 
         <input type="submit" value="Submit" />

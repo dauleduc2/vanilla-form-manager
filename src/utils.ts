@@ -32,6 +32,11 @@ export const generateFormState = <T extends Record<string, any>>(
         renderDebug();
         return true;
       },
+      deleteProperty(obj, key) {
+        delete obj[key];
+        renderDebug();
+        return true;
+      },
     };
   };
 
@@ -110,6 +115,9 @@ export const getValueByPath = <T extends Record<string, any>>(
   path: string,
   object: T
 ): any => {
+  // handle in case target is array
+  if (path.split(".").length === 1) return object[path];
+
   if (!path) return object;
   const keys = path.split(".");
   let result = object;
@@ -127,9 +135,15 @@ export const setValueByPath = <T extends Record<string, any>>(
 ) => {
   if (!path) throw new Error("invalid key");
   const keys = path.split(".");
-  const last = keys.splice(-1);
-  const itemToChange = getValueByPath(keys.join("."), object);
-  itemToChange[last[0]] = value;
+
+  if (keys.length === 1) {
+    const itemToChange = getValueByPath(keys.join("."), object);
+    itemToChange[keys[0]] = value;
+  } else {
+    const last = keys.splice(-1);
+    const itemToChange = getValueByPath(keys.join("."), object);
+    itemToChange[last[0]] = value;
+  }
 };
 
 export const isDeepPath = <T extends Record<string, any>>(
