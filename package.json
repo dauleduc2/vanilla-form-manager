@@ -4,7 +4,7 @@
   "author": "Phu Nguyen, Duc Dau",
   "description": "A Package to handle your HTML Form in vanilla JS",
   "main": "dist/bundle.js",
-  "version": "0.0.2",
+  "version": "0.0.7",
   "files": [
     "dist"
   ],
@@ -39,6 +39,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "terser-webpack-plugin": "^5.3.9"
+    "terser-webpack-plugin": "^5.3.9",
+    "vanilla-form-manager": "^0.0.7"
   }
 }
