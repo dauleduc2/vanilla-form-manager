@@ -5,7 +5,7 @@ import { FormValidation } from "./class";
 export default { FormValidation };
 
 const initialValues = {
-  fname: "Phu",
+  fname: "Duc",
   age: "",
   address: {
     city: "",
@@ -32,8 +32,10 @@ const myForm = new FormValidation({
   debug: true,
 });
 
+// Add event listener for add hobby button
 document.getElementById("add-hobby").addEventListener("click", () => {
   const field = "hobbies";
+  // add item to array and update UI
   myForm.addArrayItem(
     {
       field,
@@ -75,10 +77,12 @@ document.getElementById("add-hobby").addEventListener("click", () => {
   );
 });
 
+// Add event listener for remove hobby button
 const addDeleteItemListener = (el: Element) =>
   el.addEventListener("click", () => {
     const removeIndex = parseInt(el.getAttribute("data-index"));
 
+    // remove item from array and update UI
     myForm.removeArrayItem(
       {
         field: `hobbies`,
